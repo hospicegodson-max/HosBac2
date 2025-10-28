@@ -1136,370 +1136,87 @@
     <!-- Toast notifications -->
     <div id="toast-container"></div>
 
-    <!-- Scripts -->
+    <!-- Scripts Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <!-- Script principal -->
     <script>
-        // Configuration Firebase (à remplacer par vos vraies clés)
-        const firebaseConfig = {
-            apiKey: "AIzaSyCgC2vbsKExHbZVc80b3jMq96besCMwjWk",
-            authDomain: "hosbac-729f3.firebaseapp.com",
-            projectId: "hosbac-729f3",
-            storageBucket: "hosbac-729f3.firebasestorage.app",
-            messagingSenderId: "123456789",
-            appId: "1:577940206427:web:9416d06adb40d28fb3a07e"
-        };
+        // =================================================================
+        // 0. IMPORTATIONS ET CONFIGURATION
+        // =================================================================
 
-        // Configuration Cloudinary (à remplacer par vos vraies clés)
-        const cloudinaryConfig = {
-            cloudName: "dvlvj9zko",
-            uploadPreset: "hosbac_pdf_upload"
-        };
+        // Simuler les importations des modules Firebase (car le HTML utilise les scripts CDN)
+        // Dans un projet Next.js réel, on utiliserait:
+        // import { initializeApp } from 'firebase/app';
+        // import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+        // ... etc.
 
-        // État de l'application
-        let currentUser = null;
-        let currentSection = 'home';
-        let pendingCorrigeExam = null;
+        // Étant donné que le HTML utilise les scripts CDN (comme firebasejs/8.10.0/),
+        // les objets 'firebase.initializeApp', 'firebase.auth', 'firebase.firestore'
+        // et 'firebase.storage' (pour Cloudinary via un proxy si on l'utilisait)
+        // sont globalement disponibles.
 
-        // Initialisation de l'application
-        document.addEventListener('DOMContentLoaded', function() {
-            // Afficher la splash screen pendant 4 secondes
-            setTimeout(() => {
-                document.getElementById('splash-screen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('splash-screen').style.display = 'none';
-                    document.getElementById('warning-modal').style.display = 'flex';
-                }, 500);
-            }, 4000);
+        document.addEventListener('DOMContentLoaded', () => {
 
-            // Gestion de l'acceptation des CGU
-            document.getElementById('accept-cgu').addEventListener('click', function() {
-                document.getElementById('warning-modal').style.display = 'none';
-                document.getElementById('auth-page').style.display = 'flex';
-                initializeAuth();
-            });
+            // 🛑 REMPLACEZ CECI par votre configuration Firebase réelle
+            const firebaseConfig = {
+                apiKey: "VOTRE_CLÉ_API_FIREBASE", // <--- PLACEHOLDER
+                authDomain: "hosbac-729f3.firebaseapp.com",
+                projectId: "hosbac-729f3",
+                storageBucket: "hosbac-729f3.firebasestorage.app",
+                messagingSenderId: "577940206427", // <--- PLACEHOLDER (VOTRE SENDER ID)
+                appId: "1:577940206427:web:9416d06adb40d28fb3a07e" // <--- PLACEHOLDER (VOTRE APP ID)
+            };
 
-            // Initialisation des écouteurs d'événements pour l'authentification
-            function initializeAuth() {
-                // Basculer entre connexion et inscription
-                document.querySelectorAll('.auth-tab').forEach(tab => {
-                    tab.addEventListener('click', function() {
-                        const tabName = this.getAttribute('data-tab');
-                        
-                        // Mettre à jour les onglets actifs
-                        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-                        this.classList.add('active');
-                        
-                        // Mettre à jour les formulaires actifs
-                        document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
-                        document.getElementById(`${tabName}-form`).classList.add('active');
-                        
-                        // Animer l'étudiant
-                        const student = document.getElementById('student');
-                        if (tabName === 'login') {
-                            student.style.transform = 'translateX(-50%)';
-                        } else {
-                            student.style.transform = 'translateX(-30%)';
-                        }
-                    });
-                });
+            // Configuration Cloudinary (NON-SECRÈTE, utilisée côté client)
+            const cloudinaryConfig = {
+                cloudName: "dvlvj9zko",
+                uploadPreset: "hosbac_pdf_upload" // Doit être UNsigned dans Cloudinary
+            };
+            const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/upload`;
 
-                // Gestion de la connexion
-                document.getElementById('login-form').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const email = document.getElementById('login-email').value;
-                    const password = document.getElementById('login-password').value;
-                    
-                    // Simulation de connexion (à remplacer par Firebase Auth)
-                    if (email && password) {
-                        simulateLogin(email, password);
-                    } else {
-                        showToast('Veuillez remplir tous les champs', 'error');
-                    }
-                });
+            // Initialisation Firebase (V8 SDK, comme dans le HTML)
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
 
-                // Gestion de l'inscription
-                document.getElementById('register-form').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const firstname = document.getElementById('register-firstname').value;
-                    const lastname = document.getElementById('register-lastname').value;
-                    const email = document.getElementById('register-email').value;
-                    const password = document.getElementById('register-password').value;
-                    
-                    // Simulation d'inscription (à remplacer par Firebase Auth)
-                    if (firstname && lastname && email && password) {
-                        simulateRegister(firstname, lastname, email, password);
-                    } else {
-                        showToast('Veuillez remplir tous les champs', 'error');
-                    }
-                });
+            // État de l'application
+            let currentUserData = null;
+            const ADMIN_EMAIL = 'mickaelpcs14@gmail.com';
 
-                // Mot de passe oublié
-                document.getElementById('forgot-password').addEventListener('click', function() {
-                    showToast('Fonctionnalité à implémenter avec Firebase Auth', 'info');
-                });
-            }
-
-            // Simulation de connexion
-            function simulateLogin(email, password) {
-                // Dans une vraie application, cette partie utiliserait Firebase Auth
-                showToast('Connexion en cours...', 'info');
-                
-                setTimeout(() => {
-                    // Simuler une connexion réussie
-                    currentUser = {
-                        uid: 'user123',
-                        email: email,
-                        displayName: 'Utilisateur Test',
-                        firstName: 'Prénom',
-                        lastName: 'Nom',
-                        points: 0, // Points initiaux à 0
-                        examsSubmitted: 0,
-                        downloadsCount: 0,
-                        isAdmin: email === 'mickaelpcs14@gmail.com'
-                    };
-                    
-                    showToast('Connexion réussie!', 'success');
-                    document.getElementById('auth-page').style.display = 'none';
-                    document.getElementById('app').style.display = 'block';
-                    
-                    // Initialiser l'application après connexion
-                    initializeApp();
-                }, 1500);
-            }
-
-            // Simulation d'inscription
-            function simulateRegister(firstname, lastname, email, password) {
-                // Dans une vraie application, cette partie utiliserait Firebase Auth
-                showToast('Création de compte en cours...', 'info');
-                
-                setTimeout(() => {
-                    // Simuler une inscription réussie
-                    showToast('Compte créé avec succès!', 'success');
-                    
-                    // Basculer vers l'onglet de connexion
-                    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-                    document.querySelector('.auth-tab[data-tab="login"]').classList.add('active');
-                    
-                    document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
-                    document.getElementById('login-form').classList.add('active');
-                    
-                    // Remplir automatiquement l'email
-                    document.getElementById('login-email').value = email;
-                    
-                    // Animer l'étudiant
-                    document.getElementById('student').style.transform = 'translateX(-50%)';
-                }, 1500);
-            }
-
-            // Initialiser l'application après connexion
-            function initializeApp() {
-                // Afficher/masquer l'icône admin selon l'utilisateur
-                if (currentUser && currentUser.isAdmin) {
-                    document.querySelector('.admin-only').style.display = 'block';
-                }
-                
-                // Mettre à jour les informations du profil
-                updateProfileInfo();
-                
-                // Initialiser la navigation
-                initializeNavigation();
-                
-                // Initialiser les écouteurs d'événements
-                initializeEventListeners();
-            }
-
-            // Mettre à jour les informations du profil
-            function updateProfileInfo() {
-                if (currentUser) {
-                    document.getElementById('profile-name').textContent = currentUser.lastName;
-                    document.getElementById('profile-firstname').textContent = currentUser.firstName;
-                    document.getElementById('profile-email').textContent = currentUser.email;
-                    document.getElementById('points-balance').textContent = currentUser.points;
-                    document.getElementById('exams-submitted').textContent = currentUser.examsSubmitted;
-                    document.getElementById('downloads-count').textContent = currentUser.downloadsCount;
-                }
-            }
-
-            // Initialiser la navigation
-            function initializeNavigation() {
-                document.querySelectorAll('.nav-icon').forEach(icon => {
-                    icon.addEventListener('click', function() {
-                        const section = this.getAttribute('data-section');
-                        
-                        // Mettre à jour les icônes actives
-                        document.querySelectorAll('.nav-icon').forEach(i => i.classList.remove('active'));
-                        this.classList.add('active');
-                        
-                        // Mettre à jour les sections actives
-                        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                        document.getElementById(`${section}-section`).classList.add('active');
-                        
-                        currentSection = section;
-                    });
-                });
-            }
-
-            // Initialiser les écouteurs d'événements
-            function initializeEventListeners() {
-                // Bouton d'ajout d'épreuve
-                document.getElementById('add-exam-btn').addEventListener('click', function() {
-                    document.getElementById('add-exam-modal').style.display = 'flex';
-                });
-
-                // Annuler l'ajout d'épreuve
-                document.getElementById('cancel-add-exam').addEventListener('click', function() {
-                    document.getElementById('add-exam-modal').style.display = 'none';
-                });
-
-                // Soumission du formulaire d'ajout d'épreuve
-                document.getElementById('add-exam-form').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const subject = document.getElementById('exam-subject').value;
-                    const className = document.getElementById('exam-class').value;
-                    const name = document.getElementById('exam-name').value;
-                    const examFile = document.getElementById('exam-file').files[0];
-                    const solutionFile = document.getElementById('solution-file').files[0];
-                    
-                    if (!subject || !name || !examFile) {
-                        showToast('Veuillez remplir tous les champs obligatoires', 'error');
-                        return;
-                    }
-                    
-                    // Simulation d'upload (dans une vraie application, utiliser Cloudinary)
-                    showToast('Soumission en cours d\'examen...', 'info');
-                    
-                    setTimeout(() => {
-                        document.getElementById('add-exam-modal').style.display = 'none';
-                        showToast('Votre épreuve a été soumise avec succès! Elle est en attente de validation.', 'success');
-                        
-                        // Réinitialiser le formulaire
-                        document.getElementById('add-exam-form').reset();
-                    }, 2000);
-                });
-
-                // Upload de fichiers
-                document.getElementById('exam-file-upload').addEventListener('click', function() {
-                    document.getElementById('exam-file').click();
-                });
-                
-                document.getElementById('solution-file-upload').addEventListener('click', function() {
-                    document.getElementById('solution-file').click();
-                });
-
-                // Déconnexion
-                document.getElementById('logout-btn').addEventListener('click', function() {
-                    currentUser = null;
-                    document.getElementById('app').style.display = 'none';
-                    document.getElementById('auth-page').style.display = 'flex';
-                    
-                    // Réinitialiser le formulaire de connexion
-                    document.getElementById('login-form').reset();
-                });
-
-                // Édition du profil
-                document.getElementById('edit-profile').addEventListener('click', function() {
-                    document.getElementById('edit-firstname').value = currentUser.firstName;
-                    document.getElementById('edit-lastname').value = currentUser.lastName;
-                    document.getElementById('edit-email').value = currentUser.email;
-                    document.getElementById('edit-profile-modal').style.display = 'flex';
-                });
-
-                // Annuler l'édition du profil
-                document.getElementById('cancel-edit-profile').addEventListener('click', function() {
-                    document.getElementById('edit-profile-modal').style.display = 'none';
-                });
-
-                // Soumission de l'édition du profil
-                document.getElementById('edit-profile-form').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const firstname = document.getElementById('edit-firstname').value;
-                    const lastname = document.getElementById('edit-lastname').value;
-                    
-                    if (!firstname || !lastname) {
-                        showToast('Veuillez remplir tous les champs', 'error');
-                        return;
-                    }
-                    
-                    // Mettre à jour les informations de l'utilisateur
-                    currentUser.firstName = firstname;
-                    currentUser.lastName = lastname;
-                    currentUser.displayName = `${firstname} ${lastname}`;
-                    
-                    // Mettre à jour l'affichage
-                    updateProfileInfo();
-                    
-                    document.getElementById('edit-profile-modal').style.display = 'none';
-                    showToast('Informations mises à jour avec succès!', 'success');
-                });
-
-                // Confirmation pour voir un corrigé
-                document.getElementById('confirm-corrige').addEventListener('click', function() {
-                    if (pendingCorrigeExam) {
-                        // Vérifier si l'utilisateur a assez de points
-                        if (currentUser.points >= 2) {
-                            // Déduire les points
-                            currentUser.points -= 2;
-                            updateProfileInfo();
-                            
-                            // Afficher le corrigé
-                            showToast('Affichage du corrigé', 'info');
-                            // Dans une vraie application, afficher le PDF du corrigé
-                        } else {
-                            showToast('Vous n\'avez pas assez de points pour voir ce corrigé', 'error');
-                        }
-                        
-                        document.getElementById('confirm-corrige-modal').style.display = 'none';
-                        pendingCorrigeExam = null;
-                    }
-                });
-
-                document.getElementById('cancel-corrige').addEventListener('click', function() {
-                    document.getElementById('confirm-corrige-modal').style.display = 'none';
-                    pendingCorrigeExam = null;
-                });
-
-                // Annuler le partage
-                document.getElementById('cancel-share').addEventListener('click', function() {
-                    document.getElementById('share-modal').style.display = 'none';
-                });
-
-                // Liens du footer
-                document.getElementById('cgu-link').addEventListener('click', function(e) {
-                    e.preventDefault();
-                    document.getElementById('warning-modal').style.display = 'flex';
-                });
-
-                document.getElementById('privacy-link').addEventListener('click', function(e) {
-                    e.preventDefault();
-                    // Dans une vraie application, afficher la politique de confidentialité
-                    showToast('Affichage de la politique de confidentialité', 'info');
-                });
-
-                // Actions sur les notifications
-                document.getElementById('mark-all-read').addEventListener('click', function() {
-                    showToast('Toutes les notifications ont été marquées comme lues', 'info');
-                });
-
-                document.getElementById('delete-all-notifications').addEventListener('click', function() {
-                    if (confirm('Êtes-vous sûr de vouloir supprimer toutes les notifications ?')) {
-                        showToast('Toutes les notifications ont été supprimées', 'info');
-                    }
-                });
-            }
+            // =================================================================
+            // 1. UTILITAIRES (TOASTS ET AFFICHAGE)
+            // =================================================================
 
             // Afficher une notification toast
-            function showToast(message, type) {
+            function showToast(message, type = 'info') {
+                const toastContainer = document.getElementById('toast-container') || document.body;
                 const toast = document.createElement('div');
                 toast.className = `toast ${type}`;
                 toast.textContent = message;
-                
+
+                // Créer le container s'il n'existe pas
+                if (!document.getElementById('toast-container')) {
+                    const container = document.createElement('div');
+                    container.id = 'toast-container';
+                    toastContainer.appendChild(container);
+                    toastContainer.style.position = 'relative'; // Pour le positionnement du toast
+                    container.style.position = 'fixed';
+                    container.style.top = '20px';
+                    container.style.right = '20px';
+                    container.style.zIndex = '10000';
+                    toastContainer.appendChild(container);
+                }
+
                 document.getElementById('toast-container').appendChild(toast);
-                
+
                 setTimeout(() => {
                     toast.classList.add('show');
                 }, 100);
-                
+
                 setTimeout(() => {
                     toast.classList.remove('show');
                     setTimeout(() => {
@@ -1507,6 +1224,522 @@
                     }, 300);
                 }, 3000);
             }
+
+            // Afficher/Masquer le Header et le Footer
+            function toggleApp(show) {
+                document.getElementById('auth-page').style.display = show ? 'none' : 'flex';
+                document.getElementById('app').style.display = show ? 'block' : 'none';
+            }
+
+            // Mettre à jour les infos du profil
+            function updateProfileInfo(userData) {
+                if (userData) {
+                    document.getElementById('profile-name').textContent = userData.lastName || 'N/A';
+                    document.getElementById('profile-firstname').textContent = userData.firstName || 'N/A';
+                    document.getElementById('profile-email').textContent = userData.email || 'N/A';
+                    document.getElementById('points-balance').textContent = userData.points || 0;
+                    document.getElementById('exams-submitted').textContent = userData.examsSubmitted || 0;
+                    document.getElementById('downloads-count').textContent = userData.downloadsCount || 0;
+
+                    // Afficher/masquer l'icône admin
+                    const adminIcon = document.querySelector('.admin-only');
+                    if (userData.isAdmin) {
+                        adminIcon.style.display = 'block';
+                    } else {
+                        adminIcon.style.display = 'none';
+                    }
+                }
+            }
+
+
+            // =================================================================
+            // 2. GESTION DE L'AUTHENTIFICATION ET DE L'ÉTAT
+            // =================================================================
+
+            // Vérification de l'état d'authentification Firebase
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    // Utilisateur connecté
+                    const userRef = db.collection('users').doc(user.uid);
+                    
+                    // Écoute en temps réel du document utilisateur (pour les points!)
+                    userRef.onSnapshot(doc => {
+                        if (doc.exists) {
+                            currentUserData = doc.data();
+                            currentUserData.uid = user.uid;
+                            updateProfileInfo(currentUserData);
+                            toggleApp(true); // Afficher l'application
+
+                            // Charger les données (Accueil, Notifications, etc.)
+                            loadUserDependentData(); 
+
+                        } else {
+                            // Créer le document utilisateur après une nouvelle inscription
+                            const [firstName, lastName] = user.displayName ? user.displayName.split(' ') : ['Prénom', 'Nom'];
+                            const isAdmin = user.email === ADMIN_EMAIL;
+                            
+                            const newUserData = {
+                                email: user.email,
+                                firstName: firstName,
+                                lastName: lastName,
+                                points: 0,
+                                examsSubmitted: 0,
+                                downloadsCount: 0,
+                                isAdmin: isAdmin,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            };
+                            
+                            userRef.set(newUserData).then(() => {
+                                currentUserData = newUserData;
+                                currentUserData.uid = user.uid;
+                                updateProfileInfo(currentUserData);
+                                toggleApp(true);
+                            });
+                        }
+                    }, error => {
+                        console.error("Erreur de lecture en temps réel de l'utilisateur:", error);
+                        showToast("Erreur de synchronisation du profil.", 'error');
+                        auth.signOut();
+                    });
+
+                } else {
+                    // Utilisateur déconnecté ou non loggé
+                    currentUserData = null;
+                    document.getElementById('auth-page').style.display = 'flex';
+                    document.getElementById('app').style.display = 'none';
+                    // Afficher le splash screen
+                    document.getElementById('splash-screen').style.display = 'flex';
+                    setTimeout(() => {
+                        document.getElementById('splash-screen').style.opacity = '0';
+                        setTimeout(() => {
+                            document.getElementById('splash-screen').style.display = 'none';
+                            document.getElementById('warning-modal').style.display = 'flex';
+                        }, 500);
+                    }, 400); // Temps réduit pour la déconnexion
+
+                }
+            });
+
+            // Initialisation des écouteurs d'événements (déclenchés après CGU)
+            function initializeAuthListeners() {
+                // ... (Logique de basculement Connexion/Inscription) ...
+                document.querySelectorAll('.auth-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        const tabName = this.getAttribute('data-tab');
+                        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+                        document.getElementById(`${tabName}-form`).classList.add('active');
+                        const student = document.getElementById('student');
+                        // Animation de l'étudiant
+                        student.style.transform = (tabName === 'login') ? 'translateX(-50%)' : 'translateX(-30%)';
+                    });
+                });
+
+                // Connexion
+                document.getElementById('login-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('login-email').value;
+                    const password = document.getElementById('login-password').value;
+
+                    showToast('Connexion en cours...', 'info');
+                    signInWithEmailAndPassword(auth, email, password)
+                        .catch(error => {
+                            showToast(`Erreur de connexion: ${error.message}`, 'error');
+                        });
+                });
+
+                // Inscription
+                document.getElementById('register-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const firstname = document.getElementById('register-firstname').value;
+                    const lastname = document.getElementById('register-lastname').value;
+                    const email = document.getElementById('register-email').value;
+                    const password = document.getElementById('register-password').value;
+                    
+                    showToast('Création de compte en cours...', 'info');
+                    createUserWithEmailAndPassword(auth, email, password)
+                        .then(userCredential => {
+                            // Mettre à jour le profil pour stocker Nom/Prénom (utilisé dans onAuthStateChanged)
+                            userCredential.user.updateProfile({
+                                displayName: `${firstname} ${lastname}`
+                            });
+                            showToast('Compte créé avec succès! Connexion automatique.', 'success');
+                        })
+                        .catch(error => {
+                            showToast(`Erreur d'inscription: ${error.message}`, 'error');
+                        });
+                });
+
+                // Mot de passe oublié
+                document.getElementById('forgot-password').addEventListener('click', function() {
+                    // Implémenter l'envoi d'email de réinitialisation avec Firebase Auth
+                    showToast('Veuillez entrer votre email pour recevoir le lien de réinitialisation.', 'info');
+                });
+            }
+
+            // =================================================================
+            // 3. LOGIQUE D'UPLOAD (CLOUD BINARY ET FIRESTORE)
+            // =================================================================
+
+            // Fonction d'upload vers Cloudinary
+            async function uploadToCloudinary(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+                try {
+                    const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    if (data.secure_url) {
+                        return data.secure_url;
+                    } else {
+                        throw new Error(data.error ? data.error.message : "Erreur inconnue lors de l'upload Cloudinary.");
+                    }
+                } catch (error) {
+                    console.error("Erreur Cloudinary:", error);
+                    throw error;
+                }
+            }
+
+            // Soumission du formulaire d'ajout d'épreuve
+            document.getElementById('add-exam-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                if (!currentUserData) return showToast("Vous devez être connecté.", 'error');
+
+                const form = e.target;
+                const submitBtn = form.querySelector('button[type="submit"]');
+
+                const subject = document.getElementById('exam-subject').value;
+                const className = document.getElementById('exam-class').value;
+                const name = document.getElementById('exam-name').value;
+                const examFile = document.getElementById('exam-file').files[0];
+                const solutionFile = document.getElementById('solution-file').files[0];
+
+                if (!subject || !name || !examFile) {
+                    return showToast('Veuillez remplir les champs obligatoires.', 'error');
+                }
+                
+                // Désactiver le bouton pour éviter les doubles soumissions
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Téléchargement...';
+                showToast('Téléchargement des fichiers en cours...', 'info');
+
+                try {
+                    // 1. Upload de l'épreuve OBLIGATOIRE
+                    const examUrl = await uploadToCloudinary(examFile);
+                    
+                    // 2. Upload du corrigé FACULTATIF
+                    let solutionUrl = null;
+                    if (solutionFile) {
+                        submitBtn.textContent = 'Téléchargement corrigé...';
+                        solutionUrl = await uploadToCloudinary(solutionFile);
+                    }
+                    
+                    // 3. Sauvegarde dans soumissions_en_attente (Firestore)
+                    await db.collection('soumissions_en_attente').add({
+                        titre: name,
+                        matiere: subject,
+                        classe: className,
+                        epreuveUrl: examUrl,
+                        corrigeUrl: solutionUrl,
+                        contributeurId: currentUserData.uid,
+                        contributeurNom: `${currentUserData.firstName} ${currentUserData.lastName}`,
+                        status: 'pending',
+                        hasCorrige: !!solutionFile,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    showToast('Votre épreuve a été soumise! En attente de validation.', 'success');
+                    form.reset();
+                    document.getElementById('add-exam-modal').style.display = 'none';
+                    
+                    // Mettre à jour le compteur d'épreuves soumises dans le profil
+                    db.collection('users').doc(currentUserData.uid).update({
+                        examsSubmitted: firebase.firestore.FieldValue.increment(1)
+                    });
+
+                } catch (error) {
+                    showToast(`Erreur lors de la soumission: ${error.message}`, 'error');
+                    console.error(error);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Soumettre';
+                }
+            });
+
+            // =================================================================
+            // 4. LOGIQUE DE GAMIFICATION (ACCÈS AU CORRIGÉ)
+            // =================================================================
+
+            // Fonction pour gérer le clic sur "Voir le Corrigé"
+            function handleViewCorrige(examData) {
+                if (!examData.corrigeUrl) {
+                    return showToast("Ce document n'a pas de corrigé associé.", 'error');
+                }
+                
+                // Si l'utilisateur est le contributeur, l'accès est gratuit
+                if (examData.contributeurId === currentUserData.uid) {
+                    window.open(examData.corrigeUrl, '_blank');
+                    return showToast("Accès gratuit en tant que contributeur.", 'info');
+                }
+
+                // Si l'utilisateur a déjà payé ou consulté
+                // (Devrait être vérifié via une sous-collection 'transactions' ou 'acces_corriges')
+                // Pour la simplicité du front-end, nous allons à la confirmation:
+                
+                if (currentUserData.points < 2) {
+                    return showToast("Vous n'avez pas assez de points (2 requis).", 'error');
+                }
+                
+                // Ouvrir la modale de confirmation
+                pendingCorrigeExam = examData;
+                document.getElementById('confirm-corrige-modal').style.display = 'flex';
+            }
+
+            // Gestion de la transaction de points (bouton Confirmer dans la modale)
+            document.getElementById('confirm-corrige').addEventListener('click', async () => {
+                if (!pendingCorrigeExam || !currentUserData) return;
+
+                const exam = pendingCorrigeExam;
+                const buyerId = currentUserData.uid;
+                const contributorId = exam.contributeurId;
+
+                document.getElementById('confirm-corrige-modal').style.display = 'none';
+
+                if (buyerId === contributorId) {
+                    // Cas déjà géré, ne devrait pas arriver ici
+                    window.open(exam.corrigeUrl, '_blank');
+                    return;
+                }
+
+                try {
+                    // 🛑 NOTE: Une vraie transaction sécurisée DOIT être exécutée via une Cloud Function.
+                    // Le code ci-dessous est INSÉCURISÉ, car il permettrait à un utilisateur malveillant 
+                    // de modifier les points directement depuis le navigateur.
+                    
+                    // Démarrer une transaction (pour des raisons de sécurité, ceci est préférable si on doit le faire côté client)
+                    await db.runTransaction(async (transaction) => {
+                        const buyerRef = db.collection('users').doc(buyerId);
+                        const contributorRef = db.collection('users').doc(contributorId);
+                        
+                        const buyerDoc = await transaction.get(buyerRef);
+                        
+                        if (!buyerDoc.exists) throw "Erreur: Acheteur non trouvé.";
+                        if (buyerDoc.data().points < 2) throw "Erreur: Points insuffisants.";
+                        
+                        // 1. Déduire les points de l'acheteur
+                        transaction.update(buyerRef, { 
+                            points: firebase.firestore.FieldValue.increment(-2)
+                        });
+                        
+                        // 2. Créditer les points au contributeur
+                        transaction.update(contributorRef, { 
+                            points: firebase.firestore.FieldValue.increment(2) 
+                        });
+                        
+                        // 3. Enregistrer la transaction (pour l'historique et éviter les doubles paiements)
+                        // db.collection('transactions').add({ ... });
+                    });
+                    
+                    // Transaction réussie: ouvrir le corrigé
+                    showToast(`Transaction réussie. -2 points. Vous gagnez en sagesse !`, 'success');
+                    window.open(exam.corrigeUrl, '_blank');
+                    
+                    // Envoyer la notification PUSH au contributeur
+                    // (Nécessite Cloud Functions pour le FCM)
+
+                } catch (error) {
+                    showToast(`Échec de la transaction: ${error}`, 'error');
+                    console.error("Erreur de transaction:", error);
+                } finally {
+                    pendingCorrigeExam = null;
+                }
+            });
+
+
+            // =================================================================
+            // 5. AFFICHAGE DES ÉPREUVES ET LOGIQUE D'INTERACTION (SIMPLIFIÉE)
+            // =================================================================
+
+            // Fonction de rendu d'une carte d'épreuve
+            function renderExamCard(doc) {
+                const data = doc.data();
+                const hasCorrige = data.corrigeUrl && data.corrigeUrl.length > 0;
+                
+                return `
+                    <div class="card glass" data-id="${doc.id}" data-corrige-url="${data.corrigeUrl || ''}" data-contributor-id="${data.contributeurId}">
+                        <div class="card-title">${data.titre}</div>
+                        <div class="card-meta">
+                            <span>${data.matiere}</span>
+                            <span>${data.classe}</span>
+                        </div>
+                        <div class="card-author">Contributeur: ${data.contributeurNom}</div>
+                        
+                        <div class="card-actions">
+                            <i class="fas fa-download action-icon download-exam" title="Télécharger l'épreuve"></i>
+                            <i class="fas fa-heart action-icon toggle-favorite" title="Ajouter aux favoris"></i>
+                            
+                            ${hasCorrige 
+                                ? `<i class="fas fa-file-invoice action-icon view-corrige" title="Voir le corrigé (coûte 2 points)"></i>`
+                                : `<i class="fas fa-lock action-icon" style="opacity: 0.3;" title="Corrigé non disponible"></i>`
+                            }
+                            
+                            <i class="fas fa-share-alt action-icon share-exam" title="Partager avec un ami"></i>
+                            
+                            ${currentUserData && currentUserData.isAdmin 
+                                ? `<i class="fas fa-trash-alt action-icon delete-exam" title="Supprimer (Admin)"></i>`
+                                : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Écoute des épreuves approuvées pour la page d'accueil
+            function loadUserDependentData() {
+                if (!currentUserData) return;
+
+                // Écoute de la collection 'epreuves' pour la section 'home' et 'exams'
+                db.collection('epreuves').limit(20).orderBy('createdAt', 'desc')
+                    .onSnapshot(snapshot => {
+                        const homeCardsContainer = document.getElementById('home-cards');
+                        const examsCardsContainer = document.getElementById('exams-cards');
+                        let html = '';
+                        
+                        if (snapshot.empty) {
+                            // Afficher les états vides
+                            homeCardsContainer.innerHTML = document.querySelector('#home-section .empty-state').outerHTML;
+                            examsCardsContainer.innerHTML = document.querySelector('#exams-section .empty-state').outerHTML;
+                            return;
+                        }
+
+                        snapshot.forEach(doc => {
+                            html += renderExamCard(doc);
+                        });
+
+                        homeCardsContainer.innerHTML = html;
+                        examsCardsContainer.innerHTML = html; // Pour l'instant, même contenu que home
+                        attachCardListeners(homeCardsContainer);
+                        attachCardListeners(examsCardsContainer);
+
+                    }, error => {
+                        console.error("Erreur de chargement des épreuves:", error);
+                        showToast("Erreur de chargement des épreuves.", 'error');
+                    });
+                    
+                // Logique pour l'admin (soumissions en attente)
+                if (currentUserData.isAdmin) {
+                    db.collection('soumissions_en_attente').orderBy('createdAt', 'desc')
+                        .onSnapshot(snapshot => {
+                            document.getElementById('pending-submissions').textContent = snapshot.size;
+                            // ... (Rendre la liste des soumissions pour la modération)
+                        });
+                }
+            }
+            
+            // Attacher les listeners aux icônes d'action des cartes
+            function attachCardListeners(container) {
+                container.querySelectorAll('.view-corrige').forEach(icon => {
+                    icon.onclick = (e) => {
+                        const card = e.currentTarget.closest('.card');
+                        const examData = {
+                            corrigeUrl: card.getAttribute('data-corrige-url'),
+                            contributeurId: card.getAttribute('data-contributor-id'),
+                            id: card.getAttribute('data-id')
+                        };
+                        handleViewCorrige(examData);
+                    };
+                });
+
+                container.querySelectorAll('.download-exam').forEach(icon => {
+                    icon.onclick = (e) => {
+                        // Pour cet exemple, on suppose que l'URL de l'épreuve est dans Firestore
+                        // Normalement, vous devriez chercher l'URL du PDF de l'épreuve ici
+                        showToast("Téléchargement de l'épreuve lancé (simulé)...", 'info');
+                        // window.open(epreuveUrl, '_blank');
+                    };
+                });
+                
+                container.querySelectorAll('.toggle-favorite').forEach(icon => {
+                    icon.onclick = () => showToast("Fonctionnalité Favoris à implémenter...", 'info');
+                });
+                container.querySelectorAll('.share-exam').forEach(icon => {
+                    icon.onclick = () => {
+                        document.getElementById('share-modal').style.display = 'flex';
+                        showToast("Fonctionnalité Partage à implémenter...", 'info');
+                    };
+                });
+                container.querySelectorAll('.delete-exam').forEach(icon => {
+                    icon.onclick = () => showToast("Fonctionnalité Suppression Admin à implémenter...", 'info');
+                });
+            }
+
+
+            // =================================================================
+            // 6. INITIALISATION DE L'INTERFACE (Après le DOMContentLoaded)
+            // =================================================================
+
+            // 1. Gérer le Splash Screen et l'acceptation des CGU
+            document.getElementById('accept-cgu').addEventListener('click', function() {
+                document.getElementById('warning-modal').style.display = 'none';
+                // L'onAuthStateChanged prendra le relais pour afficher la page d'authentification
+            });
+
+            // 2. Initialiser les événements d'Auth (Login/Register)
+            initializeAuthListeners();
+            
+            // 3. Initialiser la navigation
+            document.querySelectorAll('.nav-icon').forEach(icon => {
+                icon.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    document.querySelectorAll('.nav-icon').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    document.getElementById(`${section}-section`).classList.add('active');
+                });
+            });
+
+            // 4. Initialiser la déconnexion (utiliser le SDK)
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    showToast('Déconnexion réussie.', 'info');
+                }).catch(error => {
+                    showToast(`Erreur de déconnexion: ${error.message}`, 'error');
+                });
+            });
+
+            // 5. Initialiser les Modales
+            document.getElementById('add-exam-btn').addEventListener('click', () => {
+                document.getElementById('add-exam-modal').style.display = 'flex';
+            });
+            document.getElementById('cancel-add-exam').addEventListener('click', () => {
+                document.getElementById('add-exam-modal').style.display = 'none';
+                document.getElementById('add-exam-form').reset();
+            });
+            document.getElementById('cancel-share').addEventListener('click', () => {
+                document.getElementById('share-modal').style.display = 'none';
+            });
+
+            // 6. Gestion des liens du footer (CGU/Politique)
+            document.getElementById('cgu-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                // Le HTML a déjà le contenu des CGU dans la modale 'warning-modal', on la réutilise.
+                document.getElementById('warning-modal').style.display = 'flex';
+            });
+            document.getElementById('privacy-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                // Le contenu de la politique de confidentialité est manquant dans la modale du HTML.
+                // Vous devez ajouter une modale spécifique pour la Politique de Conf.
+                showToast('Veuillez ajouter le contenu de la Politique de Confidentialité dans une modale dédiée.', 'info');
+            });
+            
+            // La gestion de la visibilité initiale est déléguée à l'onAuthStateChanged
+
         });
     </script>
 </body>
